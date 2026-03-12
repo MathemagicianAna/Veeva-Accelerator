@@ -1,0 +1,153 @@
+[
+  {
+    "drug_name": "Veevamet",
+    "generic_name": "metformin",
+    "active_substances": [
+      "Metformin Hydrochloride"
+    ],
+    "therapeutic_class": "Biguanide",
+    "indication": "Management of type 2 diabetes mellitus.",
+    "known_side_effects": [
+      "Diarrhoea",
+      "Nausea",
+      "Vomiting",
+      "Abdominal bloating",
+      "Lactic acidosis"
+    ]
+  },
+  {
+    "drug_name": "Veezempic",
+    "generic_name": "semaglutide",
+    "active_substances": [
+      "Semaglutide"
+    ],
+    "therapeutic_class": "GLP-1 Receptor Agonist",
+    "indication": "To improve glycemic control in adults with type 2 diabetes mellitus and to reduce the risk of major adverse cardiovascular events.",
+    "known_side_effects": [
+      "Nausea",
+      "Vomiting",
+      "Diarrhoea",
+      "Abdominal pain"
+    ]
+  },
+  {
+    "drug_name": "Veevruda",
+    "generic_name": "pembrolizumab",
+    "active_substances": [
+      "Pembrolizumab"
+    ],
+    "therapeutic_class": "Monoclonal Antibody (PD-1 inhibitor)",
+    "indication": "Treatment of various types of cancer, including melanoma, non-small cell lung cancer, and head and neck squamous cell carcinoma.",
+    "known_side_effects": [
+      "Fatigue",
+      "Cough",
+      "Nausea",
+      "Vertigo",
+      "Rash"
+    ]
+  },
+  {
+    "drug_name": "Veevitor",
+    "generic_name": "atorvastatin",
+    "active_substances": [
+      "Atorvastatin Calcium"
+    ],
+    "therapeutic_class": "Statin (HMG-CoA reductase inhibitor)",
+    "indication": "To lower high cholesterol and triglyceride levels in the blood and to lower the risk of stroke, heart attack, or other heart complications.",
+    "known_side_effects": [
+      "Diarrhoea",
+      "Nausea",
+      "Decreased appetite"
+    ]
+  },
+  {
+    "drug_name": "Veevaloft",
+    "generic_name": "sertraline",
+    "active_substances": [
+      "Sertraline Hydrochloride"
+    ],
+    "therapeutic_class": "Selective Serotonin Reuptake Inhibitor (SSRI)",
+    "indication": "Treatment of depression, obsessive-compulsive disorder (OCD), and anxiety.",
+    "known_side_effects": [
+      "Nausea",
+      "Insomnia",
+      "Diarrhoea",
+      "Dizziness",
+      "Fatigue"
+    ]
+  },
+  {
+    "drug_name": "Veevoxen",
+    "generic_name": "naproxen",
+    "active_substances": [
+      "Naproxen Sodium"
+    ],
+    "therapeutic_class": "NSAID",
+    "indication": "Pain relief and anti-inflammatory treatment.",
+    "known_side_effects": [
+      "Nausea",
+      "Abdominal pain",
+      "Headache",
+      "Dizziness",
+      "Constipation"
+    ]
+  },
+  {
+    "drug_name": "Veevaquil",
+    "generic_name": "quetiapine",
+    "active_substances": [
+      "Quetiapine Fumarate"
+    ],
+    "therapeutic_class": "Antipsychotic",
+    "indication": "Treatment of schizophrenia and bipolar disorder.",
+    "known_side_effects": [
+      "Somnolence",
+      "Dry mouth",
+      "Weight increased",
+      "Dizziness"
+    ]
+  },
+  {
+    "drug_name": "Veevair",
+    "generic_name": "montelukast",
+    "active_substances": [
+      "Montelukast Sodium"
+    ],
+    "therapeutic_class": "Leukotriene Receptor Antagonist",
+    "indication": "Prophylaxis and chronic treatment of asthma.",
+    "known_side_effects": [
+      "Headache",
+      "Abdominal pain",
+      "Cough",
+      "Pyrexia"
+    ]
+  },
+  {
+    "drug_name": "Veevabex",
+    "generic_name": "gabapentin",
+    "active_substances": [
+      "Gabapentin"
+    ],
+    "therapeutic_class": "Anticonvulsant",
+    "indication": "Treatment of postherpetic neuralgia and partial onset seizures.",
+    "known_side_effects": [
+      "Dizziness",
+      "Somnolence",
+      "Fatigue"
+    ]
+  },
+  {
+    "drug_name": "Veevify",
+    "generic_name": "lisinopril",
+    "active_substances": [
+      "Lisinopril"
+    ],
+    "therapeutic_class": "ACE Inhibitor",
+    "indication": "Treatment of hypertension and heart failure.",
+    "known_side_effects": [
+      "Cough",
+      "Dizziness",
+      "Headache"
+    ]
+  }
+]
