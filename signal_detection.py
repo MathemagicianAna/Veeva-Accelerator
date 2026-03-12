@@ -154,9 +154,75 @@ def analyze_signals(df: pd.DataFrame, drug_profiles_path: str) -> pd.DataFrame:
     results_df = df.copy()  # Start with a copy of the original DataFrame
     drug_profiles = pd.read_json(drug_profiles_path)
 
-    # --- TODO: YOUR CODE HERE ---
+    # Normalize text in the main results dataframe
+    results_df['drug_name_norm'] = (
+        results_df['drug_name']
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    results_df['event_term_norm'] = (
+        results_df['event_term']
+        .astype(str)
+        .str.strip()
+        .str.lower()
+    )
 
-    # ----------------------------
+    # Build mapping: normalized drug name -> set of known side effects
+    known_terms_by_drug = {}
+
+    for i, row in drug_profiles.iterrows():
+        drug = str(row.get('drug_name', '')).strip().lower()
+        if not drug:
+            continue
+
+        known_terms = set()
+        value = row.get('known_side_effects', [])
+
+        if isinstance(value, list):
+            known_terms.update(
+                str(x).strip().lower()
+                for x in value
+                if pd.notna(x)
+            )
+        elif pd.notna(value):
+            known_terms.add(str(value).strip().lower())
+
+        known_terms_by_drug[drug] = known_terms
+
+    # Step 1: statistical signal
+    results_df['is_statistical_signal'] = (
+        (results_df['prr'] >= PRR_THRESHOLD) &
+        (results_df['chi_squared'] >= CHI_SQUARED_THRESHOLD)
+    )
+
+    # Optional but standard: require at least 3 reports
+    if 'case_count' in results_df.columns:
+        results_df['is_statistical_signal'] = (
+            results_df['is_statistical_signal'] &
+            (results_df['case_count'] >= 3)
+        )
+
+    # Step 2: check whether event is already known for the drug
+    def is_known_event(row):
+        drug = row['drug_name_norm']
+        event = row['event_term_norm']
+        known_terms = known_terms_by_drug.get(drug, set())
+        return event in known_terms
+
+    results_df['is_known_event'] = results_df.apply(is_known_event, axis=1)
+
+    # Step 3: requires review only if statistically strong and not already known
+    results_df['requires_review'] = (
+        results_df['is_statistical_signal'] &
+        (~results_df['is_known_event'])
+    )
+
+    # Optional: keep compatibility with docstring / older naming
+    results_df['requires_investigation'] = results_df['requires_review']
+
+    # Clean up helper columns
+    results_df = results_df.drop(columns=['drug_name_norm', 'event_term_norm'])
 
     return results_df
 
@@ -232,8 +298,8 @@ def main(
 
 if __name__ == "__main__":
     main(
-        ae_reports_path="data/raw_ae_reports.csv",
-        background_incidence_path="data/background_incidence.csv",
-        drug_profiles_path="data/drug_safety_profiles.json",
+        ae_reports_path="group_5_data/raw_ae_reports.csv",
+        background_incidence_path="group_5_data/background_incidence.csv",
+        drug_profiles_path="group_5_data/drug_safety_profiles.json",
         output_path="signal_detection_results.csv",
     )
