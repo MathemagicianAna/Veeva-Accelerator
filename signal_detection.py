@@ -121,10 +121,19 @@ def calculate_prr(df: pd.DataFrame) -> pd.Series:
         PRR = 0.05 / 0.0051 ≈ 9.8
     """
     validate_required_cols(df, {'A', 'B', 'C', 'D'})
-    # --- TODO: YOUR CODE HERE ---
 
-    # ----------------------------
-    return pd.Series()
+    A = df['A'].astype(float)
+    B = df['B'].astype(float)
+    C = df['C'].astype(float)
+    D = df['D'].astype(float)
+
+    proportion_drug  = A / (A + B)
+    proportion_other = C / (C + D)
+
+    # Avoid division by zero: where denominator is 0, return NaN
+    prr = proportion_drug / proportion_other.replace(0, float('nan'))
+
+    return prr.reset_index(drop=True)
 
 
 def calculate_chi_squared(df: pd.DataFrame) -> pd.Series:
@@ -152,10 +161,21 @@ def calculate_chi_squared(df: pd.DataFrame) -> pd.Series:
         χ² = 58.93
     """
     validate_required_cols(df, {'A', 'B', 'C', 'D'})
-    # --- TODO: YOUR CODE HERE ---
 
-    # ----------------------------
-    return pd.Series()
+    A = df['A'].astype(float)
+    B = df['B'].astype(float)
+    C = df['C'].astype(float)
+    D = df['D'].astype(float)
+
+    N = A + B + C + D
+
+    numerator   = N * (((A * D - B * C).abs() - N / 2) ** 2)
+    denominator = (A + B) * (C + D) * (A + C) * (B + D)
+
+    # Avoid division by zero
+    chi_sq = numerator / denominator.replace(0, float('nan'))
+
+    return chi_sq.reset_index(drop=True)
 
 
 def calculate_statistics(df: pd.DataFrame, background_incidence_path: str) -> pd.DataFrame:
@@ -179,11 +199,87 @@ def calculate_statistics(df: pd.DataFrame, background_incidence_path: str) -> pd
     D = Count of reports with any other drug and any other event.
     """
     results_df = df.copy()  # Start with a copy of the original DataFrame
+
+    # ── Normalize drug/event keys so groupby counts are correct ─────────────
+    # clean_input_data already lowercased/stripped these columns; re-apply
+    # here defensively so calculate_statistics is safe to call standalone too.
+    results_df['drug_name'] = results_df['drug_name'].astype(str).str.strip().str.lower()
+    results_df['event_term'] = results_df['event_term'].astype(str).str.strip().str.lower()
+
     background_incidence = load_data(background_incidence_path)
 
-    # --- TODO: YOUR CODE HERE ---
+    # ── Normalise background incidence ──────────────────────────────────────
+    # The file uses column name "count"; rename to background_count for clarity.
+    bg = background_incidence.copy()
+    bg.columns = [c.strip() for c in bg.columns]
+    if 'count' in bg.columns and 'background_count' not in bg.columns:
+        bg = bg.rename(columns={'count': 'background_count'})
+    bg['event_term'] = bg['event_term'].astype(str).str.strip().str.lower()
 
-    # ----------------------------
+    # ── Build contingency table values ──────────────────────────────────────
+    # A: reports for (this drug, this event)
+    pair_counts = (
+        results_df.groupby(['drug_name', 'event_term'])
+        .size()
+        .reset_index(name='A')
+    )
+
+    # drug_total: all reports for this drug  →  A + B = drug_total
+    drug_totals = (
+        results_df.groupby('drug_name')
+        .size()
+        .reset_index(name='drug_total')
+    )
+
+    # event_total: all reports for this event across all drugs  →  A + C = event_total
+    event_totals = (
+        results_df.groupby('event_term')
+        .size()
+        .reset_index(name='event_total')
+    )
+
+    total_reports = len(results_df)
+
+    # Merge everything onto the pair-level frame
+    contingency = (
+        pair_counts
+        .merge(drug_totals,  on='drug_name',  how='left')
+        .merge(event_totals, on='event_term', how='left')
+    )
+
+    # Incorporate background incidence to weight C against population-level rates.
+    if {'event_term', 'background_count'}.issubset(bg.columns):
+        contingency = contingency.merge(bg[['event_term', 'background_count']], on='event_term', how='left')
+        contingency['background_count'] = contingency['background_count'].fillna(0)
+        bg_total = int(bg['background_count'].sum())
+    else:
+        contingency['background_count'] = 0
+        bg_total = 0
+
+    # ── Derive A, B, C, D ───────────────────────────────────────────────────
+    # A = drug + event reports (already computed)
+    # B = all other events for this drug
+    contingency['B'] = contingency['drug_total'] - contingency['A']
+
+    # C = all reports for this event from other drugs (+ background)
+    contingency['C'] = (contingency['event_total'] - contingency['A']
+                        + contingency['background_count'])
+
+    # D = all other drug + other event reports (+ background remainder)
+    contingency['D'] = (total_reports + bg_total
+                        - contingency['drug_total']
+                        - contingency['C'])
+
+    # Clip negatives that can arise from data oddities
+    for col in ['A', 'B', 'C', 'D']:
+        contingency[col] = contingency[col].clip(lower=0)
+
+    # Merge contingency columns back onto results_df (one row per raw report)
+    results_df = results_df.merge(
+        contingency[['drug_name', 'event_term', 'A', 'B', 'C', 'D']],
+        on=['drug_name', 'event_term'],
+        how='left',
+    )
     results_df['prr'] = calculate_prr(results_df)
     results_df['chi_squared'] = calculate_chi_squared(results_df)
     results_df['case_count'] = results_df['A']
@@ -342,6 +438,10 @@ def main(
     validate_required_cols(final_df, {'prr', 'requires_review'})
     outliers_df = final_df[final_df['requires_review'] == True].head(3)
     suspect_pairs = list(zip(outliers_df['drug_name'], outliers_df['event_term']))
+    print("\n📋 Top signals being submitted:")
+    for drug, event in suspect_pairs:
+        row = outliers_df[(outliers_df['drug_name']==drug)&(outliers_df['event_term']==event)].iloc[0]
+        print(f"   {drug} -> {event}  (PRR={row['prr']:.2f}, χ²={row['chi_squared']:.2f}, n={int(row['case_count'])})")
     report_to_health_authority(suspect_pairs)
 
 
