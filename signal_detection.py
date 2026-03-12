@@ -40,8 +40,57 @@ def clean_input_data(df: pd.DataFrame) -> pd.DataFrame:
          - Validation ex: are there impossible patient ages, incorrect dates, etc.
          - Normalization ex: standardize text to lower case, remove leading/trailing white space, etc.
     """
+    required_cols = {
+        'drug_name',
+        'event_term',
+        'safety_report_case_number',
+        'patient_age',
+        'patient_gender',
+        'report_receipt_date',
+    }
+    validate_required_cols(df, required_cols)
+
     cleaned_df = df.copy()  # Start with a copy of the original DataFrame
-    # --- TODO: YOUR CODE HERE ---
+
+    cleaned_df['drug_name'] = (
+        cleaned_df['drug_name']
+        .astype(str)
+        .str.strip()
+        .str.replace(r'\s+', ' ', regex=True)
+        .str.lower()
+    )
+    cleaned_df['event_term'] = (
+        cleaned_df['event_term']
+        .astype(str)
+        .str.strip()
+        .str.replace(r'\s+', ' ', regex=True)
+        .str.lower()
+    )
+    cleaned_df['patient_gender'] = (
+        cleaned_df['patient_gender']
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+
+    cleaned_df['patient_age'] = pd.to_numeric(cleaned_df['patient_age'], errors='coerce')
+    cleaned_df['report_receipt_date'] = pd.to_datetime(cleaned_df['report_receipt_date'], errors='coerce')
+
+    min_valid_date = pd.Timestamp('1990-01-01')
+    max_valid_date = pd.Timestamp.now().normalize()
+
+    valid_rows = (
+        cleaned_df['drug_name'].notna()
+        & cleaned_df['event_term'].notna()
+        & cleaned_df['report_receipt_date'].notna()
+        & cleaned_df['patient_age'].between(0, 122, inclusive='both')
+        & (cleaned_df['drug_name'] != '')
+        & (cleaned_df['event_term'] != '')
+        & cleaned_df['report_receipt_date'].between(min_valid_date, max_valid_date, inclusive='both')
+    )
+
+    cleaned_df = cleaned_df.loc[valid_rows].drop_duplicates().reset_index(drop=True)
+    cleaned_df['report_receipt_date'] = cleaned_df['report_receipt_date'].dt.strftime('%Y-%m-%d')
 
     # ----------------------------
     return cleaned_df
@@ -161,12 +210,12 @@ def analyze_signals(df: pd.DataFrame, drug_profiles_path: str) -> pd.DataFrame:
     return results_df
 
 
-def validate_required_cols(df: pd.DataFrame, required_cols: set):
+def validate_required_cols(df: pd.DataFrame, required_cols: set[str]):
     if not required_cols.issubset(df.columns):
         raise ValueError(f"DataFrame is missing required columns. Must contain: {list(required_cols)}")
 
 
-def report_to_health_authority(suspect_pairs: list):
+def report_to_health_authority(suspect_pairs: list[tuple[str, str]]):
     """
     Submits your final list of top outlier signals to the Health Authority.
     The Authority only has resources to investigate the most severe, undeniable statistical anomalies.
@@ -176,7 +225,7 @@ def report_to_health_authority(suspect_pairs: list):
     print("\n" + "=" * 60)
     print("📡 TRANSMITTING FINDINGS TO HEALTH AUTHORITY...")
     print("=" * 60)
-    clean_pairs = []
+    clean_pairs: list[str] = []
     for drug, event in suspect_pairs:
         clean_pairs.append(f"{str(drug).strip().upper()}:{str(event).strip().upper()}")
 
